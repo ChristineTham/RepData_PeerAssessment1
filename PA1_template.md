@@ -14,7 +14,7 @@ We use the `colClasses` parameter to set the classes for each column in the data
 
 ```r
 data <- read.csv(unz("activity.zip", "activity.csv"),
-                 colClasses = c("integer", "character", "factor"))
+                 colClasses = c("integer", "character", "integer"))
 str(data)
 ```
 
@@ -22,7 +22,7 @@ str(data)
 ## 'data.frame':	17568 obs. of  3 variables:
 ##  $ steps   : int  NA NA NA NA NA NA NA NA NA NA ...
 ##  $ date    : chr  "2012-10-01" "2012-10-01" "2012-10-01" "2012-10-01" ...
-##  $ interval: Factor w/ 288 levels "0","10","100",..: 1 226 2 73 136 195 198 209 212 223 ...
+##  $ interval: int  0 5 10 15 20 25 30 35 40 45 ...
 ```
 
 ### 2. Process/transform the data
@@ -32,15 +32,17 @@ The second column `date` should really be of class `Date` so we convert it using
 
 ```r
 data$date_asDate <- as.Date(data$date, "%Y-%m-%d")
+data$time_hour <- (data$interval %/% 100) + (data$interval %% 100) / 60
 str(data)
 ```
 
 ```
-## 'data.frame':	17568 obs. of  4 variables:
+## 'data.frame':	17568 obs. of  5 variables:
 ##  $ steps      : int  NA NA NA NA NA NA NA NA NA NA ...
 ##  $ date       : chr  "2012-10-01" "2012-10-01" "2012-10-01" "2012-10-01" ...
-##  $ interval   : Factor w/ 288 levels "0","10","100",..: 1 226 2 73 136 195 198 209 212 223 ...
+##  $ interval   : int  0 5 10 15 20 25 30 35 40 45 ...
 ##  $ date_asDate: Date, format: "2012-10-01" "2012-10-01" ...
+##  $ time_hour  : num  0 0.0833 0.1667 0.25 0.3333 ...
 ```
 
 
@@ -99,7 +101,7 @@ This is expressed as a time series `myts`
 
 
 ```r
-intervals <- split(data, data$interval)
+intervals <- split(data, as.factor(data$interval))
 avg_steps_per_interval <- sapply(intervals, function(i) mean(i$steps, na.rm = TRUE))
 myts <- ts(avg_steps_per_interval, start = 0, deltat = 1/12)
 ```
@@ -274,7 +276,7 @@ plot(weekend_ts,
 
 From the above two plots, it would seem the daily activity patterns tends to be
 
-1. Lower on weekdays compared to weekends for intervals ranging from 00:00 to 15:00
-2. Higher on weekdays for intervals ranging from 20:00 to 24:00
+1. Higher on weekdays compared to weekends for intervals ranging from 05:00 to 12:00
+2. Higher on weekends for intervals ranging from 12:00 to 20:00
 
-Assuming that the interval values are skewed by timezone (the period 15:00 to 20:00 represents sleep), a potential hypothesis for the difference is that the individual is more active during the day for weekdays, but more active in the evenings for weekends.
+A potential hypothesis for the difference is that the individual is more active in the mornings for weekdays, but more active in the afternoons/evenings for weekends.
