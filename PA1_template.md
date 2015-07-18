@@ -227,7 +227,7 @@ We create a new column called `day_type` in `data` which is a factor to represen
 ```r
 day_type = c(Sunday = "weekend",
              Monday = "weekday",
-             Tueday = "weekday",
+             Tuesday = "weekday",
              Wednesday = "weekday",
              Thursday = "weekday",
              Friday = "weekday",
@@ -242,12 +242,12 @@ We generate two time series - one for weekdays and one for weekends
 
 ```r
 data_weekday <- data[data$day_type == "weekday",]
-weekday_ts <- ts(sapply(split(data_weekday, data_weekday$interval),
+weekday_ts <- ts(sapply(split(data_weekday, as.factor(data_weekday$interval)),
                         function(i) mean(i$steps, na.rm = TRUE)),
                  start = 0,
                  deltat = 1/12)
 data_weekend <- data[data$day_type == "weekend",]
-weekend_ts <- ts(sapply(split(data_weekend, data_weekend$interval),
+weekend_ts <- ts(sapply(split(data_weekend, as.factor(data_weekend$interval)),
                         function(i) mean(i$steps, na.rm = TRUE)),
                  start = 0,
                  deltat = 1/12)
