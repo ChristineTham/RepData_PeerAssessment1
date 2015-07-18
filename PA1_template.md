@@ -27,7 +27,7 @@ str(data)
 
 ### 2. Process/transform the data
 
-The second column `date` should really be of class `Date` so we convert it using the `as.Date()` function.
+We create two extra columns corresponding to the `date` column expressed as a date (`date_asDate`) and the interval converted to time in hours (`time_hour`)
 
 
 ```r
@@ -50,12 +50,14 @@ str(data)
 
 ### 1. Calculate the total number of steps taken per day
 
-We calculate the steps per day by splitting the data frame by date, and then using the `sapply()` function to sum the total number of steps for each date. Note that NA values are ignored.
+We calculate the total steps per day by using the `aggregate()` function.
 
 
 ```r
-s <- split(data, as.factor(data$date))
-steps_per_day <- sapply(s, function(d) sum(d$steps, na.rm = TRUE))
+total_steps <- aggregate(data[,"steps"],
+                         by = list(data$date),
+                         FUN = sum,
+                         na.rm = TRUE)
 ```
 
 ### 2. Histogram of the total number of steps taken each day
@@ -64,8 +66,8 @@ For simplicity we use the base plotting system to plot a simple histogram of `st
 
 
 ```r
-hist(steps_per_day,
-     breaks = range(steps_per_day)[2] %/% 1000,
+hist(total_steps$x,
+     breaks = range(total_steps$x)[2] %/% 1000,
      main = "Histogram of total number of steps per day",
      xlab = "Total number of steps per day", col = "gray")
 ```
@@ -78,7 +80,7 @@ Mean and Median can be calculated using R functions. The results are displayed b
 
 
 ```r
-sprintf("Mean steps per day : %.0f steps", mean(steps_per_day))
+sprintf("Mean steps per day : %.0f steps", mean(total_steps$x))
 ```
 
 ```
@@ -86,7 +88,7 @@ sprintf("Mean steps per day : %.0f steps", mean(steps_per_day))
 ```
 
 ```r
-sprintf("Median steps per day : %.0f steps", median(steps_per_day))
+sprintf("Median steps per day : %.0f steps", median(total_steps$x))
 ```
 
 ```
@@ -97,21 +99,25 @@ sprintf("Median steps per day : %.0f steps", median(steps_per_day))
 
 ### 1. Average number of steps taken for each 5 minute interval (averaged across all days)
 
-This is expressed as a time series `myts`
+We generate the average steps per interval using the `aggregate()` function.
 
 
 ```r
-intervals <- split(data, as.factor(data$interval))
-avg_steps_per_interval <- sapply(intervals, function(i) mean(i$steps, na.rm = TRUE))
-myts <- ts(avg_steps_per_interval, start = 0, deltat = 1/12)
+avg_steps <- aggregate(data[,c("time_hour", "steps")],
+                       by = list(data$interval),
+                       FUN = mean,
+                       na.rm = TRUE)
 ```
 
 ### 2. Time series plot
 
+We use the `lattice` library to plot a time-series of `avg_steps`
+
 
 ```r
-plot(myts,
-     type = "l",
+library(lattice)
+xyplot(steps ~ time_hour, avg_steps,
+       type = "l",
      main = "Average daily activity pattern",
      xlab = "Time (hour)",
      ylab = "Average steps")
@@ -121,18 +127,18 @@ plot(myts,
 
 ### 3. 5 minute interval that contains the maximum number of steps
 
-This can be derived by sorting `avg_steps_per_interval` by decreasing order, then inspecting the name of the first element of the vector.
+This can be derived by reordering `avg_steps` by decreasing `steps` column, and displaying the first row using `head()`
 
 This is interval 0835 (ie. 8:35AM) which has an average of 206 steps.
 
 
 ```r
-sort(avg_steps_per_interval, decreasing= TRUE)[1]
+head(avg_steps[order(avg_steps$steps, decreasing = TRUE),], 1)
 ```
 
 ```
-##      835 
-## 206.1698
+##     Group.1 time_hour    steps
+## 104     835  8.583333 206.1698
 ```
 
 ## Imputing missing values
@@ -163,7 +169,8 @@ The 4th strategy is selected. We first build a vector `median_steps` containing 
 
 
 ```r
-median_steps <- sapply(intervals, function(i) median(i$steps, na.rm = TRUE))
+median_steps <- sapply(split(data, as.factor(data$interval)),
+                       function(i) median(i$steps,na.rm = TRUE))
 ```
 
 ### 3. New dataset with missing data filled in
@@ -184,10 +191,12 @@ We calculate a revised `filled_steps_per_day` using `filled_data` and then plot 
 
 
 ```r
-filled_s <- split(filled_data, as.factor(filled_data$date))
-filled_steps_per_day <- sapply(filled_s, function(d) sum(d$steps, na.rm = TRUE))
-hist(filled_steps_per_day,
-     breaks = range(filled_steps_per_day)[2] %/% 1000,
+filled_total_steps <- aggregate(filled_data[,"steps"],
+                         by = list(filled_data$date),
+                         FUN = sum,
+                         na.rm = TRUE)
+hist(filled_total_steps$x,
+     breaks = range(filled_total_steps$x)[2] %/% 1000,
      main = "Histogram of total number of steps per day",
      xlab = "Total number of steps per day", col = "gray")
 ```
@@ -200,7 +209,7 @@ The revised Mean and Median are calculated using `filled_steps_per_day`.
 
 
 ```r
-sprintf("Mean steps per day : %.0f steps", mean(filled_steps_per_day))
+sprintf("Mean steps per day : %.0f steps", mean(filled_total_steps$x))
 ```
 
 ```
@@ -208,7 +217,7 @@ sprintf("Mean steps per day : %.0f steps", mean(filled_steps_per_day))
 ```
 
 ```r
-sprintf("Median steps per day : %.0f steps", median(filled_steps_per_day))
+sprintf("Median steps per day : %.0f steps", median(filled_total_steps$x))
 ```
 
 ```
@@ -232,44 +241,31 @@ day_type = c(Sunday = "weekend",
              Thursday = "weekday",
              Friday = "weekday",
              Saturday = "weekend")
-data$day_type <- as.factor(day_type[as.character(weekdays(data$date_asDate))])
+data$day_type <- as.factor(day_type[weekdays(data$date_asDate)])
 ```
 
 ### 2. Panel plot
 
-We generate two time series - one for weekdays and one for weekends
+We create a new aggregate of `filled_data` grouping by `interval` and `day_type`
 
 
 ```r
-data_weekday <- data[data$day_type == "weekday",]
-weekday_ts <- ts(sapply(split(data_weekday, as.factor(data_weekday$interval)),
-                        function(i) mean(i$steps, na.rm = TRUE)),
-                 start = 0,
-                 deltat = 1/12)
-data_weekend <- data[data$day_type == "weekend",]
-weekend_ts <- ts(sapply(split(data_weekend, as.factor(data_weekend$interval)),
-                        function(i) mean(i$steps, na.rm = TRUE)),
-                 start = 0,
-                 deltat = 1/12)
+avg_steps_bydaytype <- aggregate(filled_data[,c("time_hour", "steps")],
+               by = list(data$interval, data$day_type),
+               FUN = mean,
+               na.rm = TRUE)
 ```
 
 We then plot the two time series
 
 
 ```r
-par(mfrow = c(2, 1), mar = c(5, 4, 2, 1))
-plot(weekday_ts,
-     type = "l",
-     ylim = c(0,300),
-     main = "Average daily activity pattern (Weekdays)",
-     xlab = "Time (hour)",
-     ylab = "Average steps")
-plot(weekend_ts,
-     type = "l",
-     ylim = c(0,300),
-     main = "Average daily activity pattern (Weekends)",
-     xlab = "Time (hour)",
-     ylab = "Average steps")
+xyplot(steps ~ time_hour | Group.2,
+       avg_steps_bydaytype,
+       type = "l",
+       main = "Average daily activity pattern",
+       xlab = "Time (hour)",
+       ylab = "Average steps")
 ```
 
 ![](PA1_template_files/figure-html/unnamed-chunk-16-1.png) 
