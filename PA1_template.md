@@ -118,9 +118,10 @@ We use the `lattice` library to plot a time-series of `avg_steps`
 library(lattice)
 xyplot(steps ~ time_hour, avg_steps,
        type = "l",
-     main = "Average daily activity pattern",
-     xlab = "Time (hour)",
-     ylab = "Average steps")
+       xlim = c(0,24),
+       main = "Average daily activity pattern",
+       xlab = "Time (hour)",
+       ylab = "Average steps")
 ```
 
 ![](PA1_template_files/figure-html/unnamed-chunk-7-1.png) 
@@ -175,7 +176,7 @@ median_steps <- sapply(split(data, as.factor(data$interval)),
 
 ### 3. New dataset with missing data filled in
 
-We create a new dataset called `filled_data` and create an extra column called `median_steps` containing the appropriate mean for that interval, then we replace all `NA` values with the mean 
+We create a new dataset called `filled_data` and create an extra column called `median_steps` containing the appropriate median for that interval, then we replace all `NA` values with the median.
 
 
 ```r
@@ -197,7 +198,7 @@ filled_total_steps <- aggregate(filled_data[,"steps"],
                          na.rm = TRUE)
 hist(filled_total_steps$x,
      breaks = range(filled_total_steps$x)[2] %/% 1000,
-     main = "Histogram of total number of steps per day",
+     main = "Revised Histogram of total number of steps per day",
      xlab = "Total number of steps per day", col = "gray")
 ```
 
@@ -241,7 +242,7 @@ day_type = c(Sunday = "weekend",
              Thursday = "weekday",
              Friday = "weekday",
              Saturday = "weekend")
-data$day_type <- as.factor(day_type[weekdays(data$date_asDate)])
+filled_data$day_type <- as.factor(day_type[weekdays(filled_data$date_asDate)])
 ```
 
 ### 2. Panel plot
@@ -251,7 +252,7 @@ We create a new aggregate of `filled_data` grouping by `interval` and `day_type`
 
 ```r
 avg_steps_bydaytype <- aggregate(filled_data[,c("time_hour", "steps")],
-               by = list(data$interval, data$day_type),
+               by = list(filled_data$interval, filled_data$day_type),
                FUN = mean,
                na.rm = TRUE)
 ```
@@ -263,8 +264,9 @@ We then plot the two time series
 xyplot(steps ~ time_hour | Group.2,
        avg_steps_bydaytype,
        type = "l",
+       xlim = c(0,24),
        layout = c(1,2),
-       main = "Average daily activity pattern",
+       main = "Average daily activity pattern (weekday/weekend comparison)",
        xlab = "Time (hour)",
        ylab = "Average steps")
 ```
