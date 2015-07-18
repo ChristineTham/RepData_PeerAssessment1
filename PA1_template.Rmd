@@ -196,10 +196,11 @@ avg_steps_bydaytype <- aggregate(filled_data[,c("time_hour", "steps")],
 
 We then plot the two time series
 
-```{r}
+```{r fig.height=8}
 xyplot(steps ~ time_hour | Group.2,
        avg_steps_bydaytype,
        type = "l",
+       layout = c(1,2),
        main = "Average daily activity pattern",
        xlab = "Time (hour)",
        ylab = "Average steps")

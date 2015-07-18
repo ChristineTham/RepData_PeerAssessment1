@@ -263,6 +263,7 @@ We then plot the two time series
 xyplot(steps ~ time_hour | Group.2,
        avg_steps_bydaytype,
        type = "l",
+       layout = c(1,2),
        main = "Average daily activity pattern",
        xlab = "Time (hour)",
        ylab = "Average steps")
