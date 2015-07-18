@@ -1,9 +1,4 @@
----
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
----
+# Reproducible Research: Peer Assessment 1
 
 This report is a submission to **Peer Assessment 1** in the **Reproducible Research** course on Coursera which is part of the *Data Science* Specialization.
 
@@ -16,19 +11,36 @@ Note that the data is zipped in the file `activity.zip`, so we call the `unz()`f
 
 We use the `colClasses` parameter to set the classes for each column in the data frame.
 
-```{r}
+
+```r
 data <- read.csv(unz("activity.zip", "activity.csv"),
                  colClasses = c("integer", "character", "factor"))
 str(data)
+```
+
+```
+## 'data.frame':	17568 obs. of  3 variables:
+##  $ steps   : int  NA NA NA NA NA NA NA NA NA NA ...
+##  $ date    : chr  "2012-10-01" "2012-10-01" "2012-10-01" "2012-10-01" ...
+##  $ interval: Factor w/ 288 levels "0","10","100",..: 1 226 2 73 136 195 198 209 212 223 ...
 ```
 
 ### 2. Process/transform the data
 
 The second column `date` should really be of class `Date` so we convert it using the `as.Date()` function.
 
-```{r}
+
+```r
 data$date_asDate <- as.Date(data$date, "%Y-%m-%d")
 str(data)
+```
+
+```
+## 'data.frame':	17568 obs. of  4 variables:
+##  $ steps      : int  NA NA NA NA NA NA NA NA NA NA ...
+##  $ date       : chr  "2012-10-01" "2012-10-01" "2012-10-01" "2012-10-01" ...
+##  $ interval   : Factor w/ 288 levels "0","10","100",..: 1 226 2 73 136 195 198 209 212 223 ...
+##  $ date_asDate: Date, format: "2012-10-01" "2012-10-01" ...
 ```
 
 
@@ -38,7 +50,8 @@ str(data)
 
 We calculate the steps per day by splitting the data frame by date, and then using the `sapply()` function to sum the total number of steps for each date. Note that NA values are ignored.
 
-```{r}
+
+```r
 s <- split(data, as.factor(data$date))
 steps_per_day <- sapply(s, function(d) sum(d$steps, na.rm = TRUE))
 ```
@@ -47,20 +60,35 @@ steps_per_day <- sapply(s, function(d) sum(d$steps, na.rm = TRUE))
 
 For simplicity we use the base plotting system to plot a simple histogram of `steps_per_day`. with breaks corresponding to every 1000 steps.
 
-```{r}
+
+```r
 hist(steps_per_day,
      breaks = range(steps_per_day)[2] %/% 1000,
      main = "Histogram of total number of steps per day",
      xlab = "Total number of steps per day", col = "gray")
 ```
 
+![](PA1_template_files/figure-html/unnamed-chunk-4-1.png) 
+
 ### 3. Mean and Median of the total number of steps taken per day
 
 Mean and Median can be calculated using R functions. The results are displayed by rounding to the nearest whole number.
 
-```{r}
+
+```r
 sprintf("Mean steps per day : %.0f steps", mean(steps_per_day))
+```
+
+```
+## [1] "Mean steps per day : 9354 steps"
+```
+
+```r
 sprintf("Median steps per day : %.0f steps", median(steps_per_day))
+```
+
+```
+## [1] "Median steps per day : 10395 steps"
 ```
 
 ## What is the average daily activity pattern?
@@ -69,16 +97,17 @@ sprintf("Median steps per day : %.0f steps", median(steps_per_day))
 
 This is expressed as a time series `myts`
 
-```{r}
+
+```r
 intervals <- split(data, data$interval)
 avg_steps_per_interval <- sapply(intervals, function(i) mean(i$steps, na.rm = TRUE))
 myts <- ts(avg_steps_per_interval, start = 0, deltat = 1/12)
-
 ```
 
 ### 2. Time series plot
 
-```{r}
+
+```r
 plot(myts,
      type = "l",
      main = "Average daily activity pattern",
@@ -86,14 +115,22 @@ plot(myts,
      ylab = "Average steps")
 ```
 
+![](PA1_template_files/figure-html/unnamed-chunk-7-1.png) 
+
 ### 3. 5 minute interval that contains the maximum number of steps
 
 This can be derived by sorting `avg_steps_per_interval` by decreasing order, then inspecting the name of the first element of the vector.
 
 This is interval 0835 (ie. 8:35AM) which has an average of 206 steps.
 
-```{r}
+
+```r
 sort(avg_steps_per_interval, decreasing= TRUE)[1]
+```
+
+```
+##      835 
+## 206.1698
 ```
 
 ## Imputing missing values
@@ -102,8 +139,13 @@ sort(avg_steps_per_interval, decreasing= TRUE)[1]
 
 This can be computed by counting number of rows in the data with `steps` equal `NA`
 
-```{r}
+
+```r
 sum(is.na(data$steps))
+```
+
+```
+## [1] 2304
 ```
 
 ### 2. Strategy for filling in missing values
@@ -117,7 +159,8 @@ There are 4 suggested strategies for filling in missing values:
 
 The 4th strategy is selected. We first build a vector `median_steps` containing the median steps for each interval
 
-```{r}
+
+```r
 median_steps <- sapply(intervals, function(i) median(i$steps, na.rm = TRUE))
 ```
 
@@ -125,11 +168,11 @@ median_steps <- sapply(intervals, function(i) median(i$steps, na.rm = TRUE))
 
 We create a new dataset called `filled_data` and create an extra column called `median_steps` containing the appropriate mean for that interval, then we replace all `NA` values with the mean 
 
-```{r}
+
+```r
 filled_data <- data
 filled_data$median_steps <- median_steps[as.character(data$interval)]
 filled_data[is.na(data$steps),"steps"] <- filled_data[is.na(data$steps),"median_steps"]
-
 ```
 
 
@@ -137,7 +180,8 @@ filled_data[is.na(data$steps),"steps"] <- filled_data[is.na(data$steps),"median_
 
 We calculate a revised `filled_steps_per_day` using `filled_data` and then plot the revised histogram.
 
-```{r}
+
+```r
 filled_s <- split(filled_data, as.factor(filled_data$date))
 filled_steps_per_day <- sapply(filled_s, function(d) sum(d$steps, na.rm = TRUE))
 hist(filled_steps_per_day,
@@ -146,13 +190,27 @@ hist(filled_steps_per_day,
      xlab = "Total number of steps per day", col = "gray")
 ```
 
+![](PA1_template_files/figure-html/unnamed-chunk-12-1.png) 
+
 ### 5. Revised Mean and Median of the total number of steps taken per day
 
 The revised Mean and Median are calculated using `filled_steps_per_day`.
 
-```{r}
+
+```r
 sprintf("Mean steps per day : %.0f steps", mean(filled_steps_per_day))
+```
+
+```
+## [1] "Mean steps per day : 9504 steps"
+```
+
+```r
 sprintf("Median steps per day : %.0f steps", median(filled_steps_per_day))
+```
+
+```
+## [1] "Median steps per day : 10395 steps"
 ```
 
 Note that the mean steps per day has increased due to the filling in of data, but the median has not. This is expected, as our strategy for filling in missing data was to use the median steps for the interval.
@@ -163,7 +221,8 @@ Note that the mean steps per day has increased due to the filling in of data, bu
 
 We create a new column called `day_type` in `data` which is a factor to represent whether the date is a weekday or weekend.
 
-```{r}
+
+```r
 day_type = c(Sunday = "weekend",
              Monday = "weekday",
              Tueday = "weekday",
@@ -178,7 +237,8 @@ data$day_type <- as.factor(day_type[as.character(weekdays(data$date_asDate))])
 
 We generate two time series - one for weekdays and one for weekends
 
-```{r}
+
+```r
 data_weekday <- data[data$day_type == "weekday",]
 weekday_ts <- ts(sapply(split(data_weekday, data_weekday$interval),
                         function(i) mean(i$steps, na.rm = TRUE)),
@@ -193,7 +253,8 @@ weekend_ts <- ts(sapply(split(data_weekend, data_weekend$interval),
 
 We then plot the two time series
 
-```{r fig.height = 10}
+
+```r
 par(mfrow = c(2, 1), mar = c(5, 4, 2, 1))
 plot(weekday_ts,
      type = "l",
@@ -208,6 +269,8 @@ plot(weekend_ts,
      xlab = "Time (hour)",
      ylab = "Average steps")
 ```
+
+![](PA1_template_files/figure-html/unnamed-chunk-16-1.png) 
 
 From the above two plots, it would seem the daily activity patterns tends to be
 
